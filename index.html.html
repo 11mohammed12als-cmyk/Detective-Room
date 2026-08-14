@@ -1,0 +1,858 @@
+<!DOCTYPE html>
+<html lang="ar" dir="rtl">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Detective Room 🕵️‍♂️</title>
+
+<style>
+*{box-sizing:border-box}
+body{
+    margin:0;
+    background:#080a0f;
+    color:#eee;
+    font-family:Arial,Tahoma,sans-serif
+}
+.app{
+    width:min(700px,100%);
+    margin:auto;
+    padding:16px
+}
+header{
+    text-align:center;
+    padding:20px 10px;
+    border-bottom:1px solid #292e3a
+}
+h1{color:#e63946;margin:0 0 8px}
+.muted{color:#929baa}
+.stats{
+    display:flex;
+    justify-content:space-around;
+    background:#0d1016;
+    padding:10px;
+    border-radius:10px;
+    margin-top:15px;
+    border:1px solid #292e3a;
+    font-size:13px
+}
+.gold{color:#ffb703;font-weight:bold}
+
+.case-menu{
+    display:flex;
+    gap:8px;
+    overflow-x:auto;
+    padding:15px 0
+}
+.case-menu button{
+    flex:none;
+    background:#191e28;
+    color:white;
+    border:1px solid #303746;
+    padding:9px 13px;
+    border-radius:8px;
+    cursor:pointer
+}
+.case-menu button.active{
+    background:#e63946;
+    border-color:#e63946
+}
+.card{
+    background:#131720;
+    border:1px solid #292f3c;
+    border-radius:14px;
+    padding:16px;
+    margin-bottom:14px
+}
+.badge{
+    display:inline-block;
+    padding:5px 9px;
+    border-radius:20px;
+    font-size:11px;
+    margin-bottom:8px
+}
+.easy{background:#064e3b;color:#6ee7b7}
+.medium{background:#78350f;color:#fcd34d}
+.hard{background:#7f1d1d;color:#fca5a5}
+
+.tabs{
+    display:flex;
+    border-bottom:1px solid #292f3c;
+    margin-bottom:14px
+}
+.tab{
+    flex:1;
+    background:none;
+    border:0;
+    color:#8d97a6;
+    padding:11px 5px;
+    cursor:pointer;
+    font-weight:bold
+}
+.tab.active{
+    color:#e63946;
+    border-bottom:2px solid #e63946
+}
+.panel{display:none}
+.panel.active{display:block}
+
+.item{
+    background:#1a1f29;
+    border:1px solid #2d3442;
+    padding:13px;
+    border-radius:10px;
+    margin-bottom:9px;
+    line-height:1.6
+}
+.name{
+    color:#ffb703;
+    font-weight:bold;
+    font-size:15px
+}
+
+.chat{
+    height:240px;
+    overflow-y:auto;
+    background:#080a0e;
+    border:1px solid #292f3c;
+    border-radius:10px;
+    padding:10px;
+    margin-bottom:8px
+}
+.msg{
+    padding:9px;
+    border-radius:9px;
+    margin-bottom:8px;
+    font-size:13px;
+    line-height:1.5
+}
+.user{
+    background:#1e3a8a;
+    text-align:left
+}
+.suspect{
+    background:#27272a;
+    border-right:3px solid #ffb703
+}
+
+.controls{
+    display:flex;
+    gap:7px;
+    margin-top:7px
+}
+input,select{
+    flex:1;
+    min-width:0;
+    background:#0d1118;
+    color:white;
+    border:1px solid #303746;
+    border-radius:8px;
+    padding:10px
+}
+button.action{
+    background:#e63946;
+    color:white;
+    border:0;
+    border-radius:8px;
+    padding:10px 15px;
+    font-weight:bold;
+    cursor:pointer
+}
+button.action:hover{opacity:.85}
+
+.accuse{
+    margin-top:16px;
+    padding:15px;
+    border-radius:12px;
+    background:#241114;
+    border:1px solid #7f1d1d
+}
+.accuse select{
+    width:100%;
+    margin:10px 0
+}
+.result{
+    display:none;
+    margin-top:10px;
+    padding:12px;
+    border-radius:9px;
+    line-height:1.6
+}
+.correct{
+    display:block;
+    background:#064e3b;
+    border:1px solid #10b981;
+    color:#a7f3d0
+}
+.wrong{
+    display:block;
+    background:#7f1d1d;
+    border:1px solid #ef4444;
+    color:#fecaca
+}
+</style>
+</head>
+
+<body>
+
+<div class="app">
+
+<header>
+<h1>🕵️‍♂️ Detective Room</h1>
+<p class="muted">ملفات مجهولة — هل تستطيع كشف الحقيقة؟</p>
+
+<div class="stats">
+<span>النقاط: <b id="score" class="gold">0</b></span>
+<span>الوقت: <b id="timer" class="gold">00:00</b></span>
+<span>المحلولة: <b id="solved" class="gold">0/20</b></span>
+</div>
+</header>
+
+<h3>🗂️ اختر القضية</h3>
+<div id="caseMenu" class="case-menu"></div>
+
+<div id="game"></div>
+
+</div>
+
+<script>
+
+const cases=[
+
+{
+title:"سرقة الخزنة المركزية",
+difficulty:"easy",
+desc:"تم فتح خزنة شركة صرافة دون كسرها واختفى مبلغ كبير. أربعة أشخاص كانوا داخل المبنى.",
+culprit:"منصور",
+evidence:[
+"📸 أثر حذاء مقاس 42 قرب الخزنة.",
+"💳 سجل النظام يظهر استخدام بطاقة الإدارة.",
+"📹 الكاميرا تظهر شخصاً يرتدي معطفاً داكناً."
+],
+suspects:[
+{
+name:"منصور",
+role:"مدير الشركة",
+clue:"كان يملك بطاقة الإدارة.",
+answer:"كنت خارج المكتب وقت الحادث."
+},
+{
+name:"عبدالباري",
+role:"الحارس",
+clue:"كان مسؤولاً عن مراقبة الطابق.",
+answer:"لم أترك نقطة الحراسة."
+},
+{
+name:"مساعد",
+role:"محاسب",
+clue:"غادر قبل الحادث بساعة.",
+answer:"لا أعرف شيئاً عن الخزنة."
+},
+{
+name:"منير",
+role:"موظف استقبال",
+clue:"كان عند المدخل.",
+answer:"لم أقترب من الطابق."
+}
+]
+},
+
+{
+title:"الغرفة 407",
+difficulty:"medium",
+desc:"اختفى ملف سري من غرفة فندق مغلقة دون وجود أي أثر للكسر.",
+culprit:"مساعد",
+evidence:[
+"🔑 بطاقة دخول استخدمت في الوقت نفسه.",
+"📹 حركة غريبة أمام الغرفة.",
+"🛗 سجل المصعد يطابق وقت الحادث."
+],
+suspects:[
+{
+name:"مساعد",
+role:"نزيل الفندق",
+clue:"بطاقته سُجلت قرب الغرفة.",
+answer:"لم أدخل الغرفة."
+},
+{
+name:"منير",
+role:"موظف",
+clue:"كان في الردهة.",
+answer:"كنت أعمل طوال الوقت."
+},
+{
+name:"منصور",
+role:"زائر",
+clue:"غادر الفندق مبكراً.",
+answer:"خرجت قبل وقوع الحادث."
+},
+{
+name:"عبدالباري",
+role:"حارس",
+clue:"كان في الطابق الأرضي.",
+answer:"لم أصعد للطابق الرابع."
+}
+]
+},
+
+{
+title:"الرسالة الأخيرة",
+difficulty:"easy",
+desc:"وصلت رسالة مجهولة إلى مكتب خاص، وبعدها اختفت ورقة مهمة من الظرف.",
+culprit:"منصور",
+evidence:[
+"✉️ بصمة على الظرف.",
+"🚪 سجل دخول المكتب.",
+"📹 الكاميرا تظهر عودة أحد الأشخاص."
+],
+suspects:[
+{
+name:"منصور",
+role:"شريك",
+clue:"عاد إلى المكتب بعد مغادرته.",
+answer:"نسيت شيئاً وعدت لدقيقة."
+},
+{
+name:"منير",
+role:"سكرتير",
+clue:"استلم البريد.",
+answer:"وضعت الظرف على الطاولة."
+},
+{
+name:"مساعد",
+role:"موظف",
+clue:"كان في غرفة الاجتماعات.",
+answer:"لم ألمس البريد."
+},
+{
+name:"عبدالباري",
+role:"حارس",
+clue:"راقب المدخل.",
+answer:"لم أر شيئاً غير طبيعي."
+}
+]
+},
+
+{
+title:"الساعة المتوقفة",
+difficulty:"hard",
+desc:"ساعة متوقفة جعلت الجميع يعتقد أن وقت الحادث معروف، لكن الأدلة تقول شيئاً آخر.",
+culprit:"عبدالباري",
+evidence:[
+"⌚ بطارية الساعة ضعيفة.",
+"📝 ملاحظة تحمل وقتاً مختلفاً.",
+"🧹 سجل التنظيف يثبت دخول شخص للغرفة."
+],
+suspects:[
+{
+name:"عبدالباري",
+role:"المشرف",
+clue:"كان آخر شخص قرب الساعة.",
+answer:"لم أغيّر شيئاً في الغرفة."
+},
+{
+name:"منصور",
+role:"زائر",
+clue:"شاهد الساعة سابقاً.",
+answer:"كانت تعمل عندما رأيتها."
+},
+{
+name:"مساعد",
+role:"عامل",
+clue:"دخل للتنظيف.",
+answer:"لم ألمس الساعة."
+},
+{
+name:"منير",
+role:"موظف",
+clue:"غادر مبكراً.",
+answer:"لم أكن موجوداً."
+}
+]
+},
+
+{
+title:"المفتاح الرابع",
+difficulty:"medium",
+desc:"فُتحت خزانة سرية رغم أن ثلاثة أشخاص فقط يفترض أن يملكون مفاتيحها.",
+culprit:"منير",
+evidence:[
+"🔐 القفل يحمل أثر استخدام حديث.",
+"🗝️ نسخة مفتاح مطابقة ظهرت لاحقاً.",
+"📋 سجل المفاتيح لا يطابق أقوال أحد المشتبهين."
+],
+suspects:[
+{
+name:"منير",
+role:"مسؤول الملفات",
+clue:"كان يعرف مكان النسخة الاحتياطية.",
+answer:"لم أفتح الخزانة."
+},
+{
+name:"منصور",
+role:"مدير",
+clue:"مفتاحه مسجل في النظام.",
+answer:"مفتاحي كان معي."
+},
+{
+name:"مساعد",
+role:"محاسب",
+clue:"ليس لديه صلاحية.",
+answer:"لا أملك مفتاحاً."
+},
+{
+name:"عبدالباري",
+role:"حارس",
+clue:"يملك مفتاح الطوارئ.",
+answer:"لم أستخدمه."
+}
+]
+},
+
+{
+title:"الممر الصامت",
+difficulty:"medium",
+desc:"وقعت سرقة في ممر لا تسجل كاميراته الصوت.",
+culprit:"مساعد",
+evidence:[
+"📹 تسجيل الكاميرا.",
+"💳 بطاقة دخول.",
+"⌚ توقيت ساعة الحارس."
+],
+suspects:[
+{name:"مساعد",role:"موظف",clue:"بطاقته استخدمت قرب الممر.",answer:"كنت أبحث عن ملف."},
+{name:"منصور",role:"مدير",clue:"كان في اجتماع.",answer:"الاجتماع استمر ساعة."},
+{name:"منير",role:"حارس",clue:"كان عند البوابة.",answer:"لم أغادر مكاني."},
+{name:"عبدالباري",role:"زائر",clue:"دخل قبل الحادث.",answer:"غادرت مبكراً."}
+]
+},
+
+{
+title:"المكتب المغلق",
+difficulty:"hard",
+desc:"اختفت وثيقة من مكتب مقفل من الداخل.",
+culprit:"منصور",
+evidence:["🔒 حالة القفل","🪟 نافذة المكتب","📋 سجل الزوار"],
+suspects:[
+{name:"منصور",role:"مدير",clue:"كان يعرف طريقة فتح القفل.",answer:"لم أدخل المكتب."},
+{name:"مساعد",role:"موظف",clue:"دخل قبل الإغلاق.",answer:"خرجت قبل الجميع."},
+{name:"منير",role:"حارس",clue:"راقب الباب.",answer:"الباب بقي مغلقاً."},
+{name:"عبدالباري",role:"زائر",clue:"كان في الردهة.",answer:"لم أدخل."}
+]
+},
+
+{
+title:"الحقيبة السوداء",
+difficulty:"easy",
+desc:"اختفت حقيبة من قاعة انتظار مزدحمة.",
+culprit:"منير",
+evidence:["📹 كاميرا القاعة","💺 رقم المقعد","🧾 إيصال الحفظ"],
+suspects:[
+{name:"منير",role:"زائر",clue:"جلس بجانب الحقيبة.",answer:"لم ألمسها."},
+{name:"منصور",role:"موظف",clue:"كان عند الاستقبال.",answer:"كنت أساعد الزوار."},
+{name:"مساعد",role:"زائر",clue:"غادر سريعاً.",answer:"لم أر الحقيبة."},
+{name:"عبدالباري",role:"حارس",clue:"كان يراقب القاعة.",answer:"لم ألاحظ شيئاً."}
+]
+},
+
+{
+title:"المصعد رقم 3",
+difficulty:"hard",
+desc:"توقف المصعد لدقيقة في وقت اختفاء ملف مهم.",
+culprit:"عبدالباري",
+evidence:["🛗 سجل المصعد","💳 بطاقة الطابق","📹 كاميرا الردهة"],
+suspects:[
+{name:"عبدالباري",role:"موظف",clue:"ظهر اسمه في سجل المصعد.",answer:"استخدمت المصعد مرة فقط."},
+{name:"منصور",role:"مدير",clue:"كان في الطابق الأرضي.",answer:"لم أصعد."},
+{name:"مساعد",role:"محاسب",clue:"كان في مكتبه.",answer:"لم أتحرك."},
+{name:"منير",role:"زائر",clue:"خرج من المبنى.",answer:"غادرت مبكراً."}
+]
+},
+
+{
+title:"الطرد المجهول",
+difficulty:"medium",
+desc:"وصل طرد إلى الشخص الخطأ، ثم اختفى محتواه قبل تسجيله رسمياً.",
+culprit:"مساعد",
+evidence:["📦 ملصق الشحن","🧾 سجل الاستلام","📹 كاميرا المدخل"],
+suspects:[
+{name:"مساعد",role:"موظف",clue:"كان يعرف رقم الشحنة.",answer:"لم أستلم الطرد."},
+{name:"منصور",role:"مدير",clue:"استلم عدة طرود.",answer:"هذا ليس طردي."},
+{name:"منير",role:"موظف استقبال",clue:"سجل الشحنة.",answer:"وصلت كما هي."},
+{name:"عبدالباري",role:"حارس",clue:"راقب المدخل.",answer:"لم ألمسها."}
+]
+},
+
+{
+title:"اللوحة المفقودة",
+difficulty:"hard",
+desc:"اختفت لوحة صغيرة أثناء فعالية خاصة.",
+culprit:"منصور",
+evidence:["🎟️ قائمة الضيوف","💡 إضاءة القاعة","📦 سجل المخزن"],
+suspects:[
+{name:"منصور",role:"منظم",clue:"يملك صلاحية دخول المخزن.",answer:"لم آخذ اللوحة."},
+{name:"مساعد",role:"موظف",clue:"كان في القاعة.",answer:"كنت أراقب الضيوف."},
+{name:"منير",role:"حارس",clue:"كان عند الباب.",answer:"لم يخرج أحد."},
+{name:"عبدالباري",role:"ضيف",clue:"غادر قبل النهاية.",answer:"لم أر اللوحة."}
+]
+},
+
+{
+title:"المقعد الأخير",
+difficulty:"easy",
+desc:"ترك شخص دليلاً على مقعد لم يكن مخصصاً له.",
+culprit:"منير",
+evidence:["🎟️ تذكرة الدخول","📹 كاميرا القاعة","💺 رقم المقعد"],
+suspects:[
+{name:"منير",role:"ضيف",clue:"جلس في المقعد الخطأ.",answer:"ظننت أنه مقعدي."},
+{name:"منصور",role:"منظم",clue:"يعرف توزيع المقاعد.",answer:"كنت أساعد الضيوف."},
+{name:"مساعد",role:"ضيف",clue:"جلس في مكانه.",answer:"لم أتحرك."},
+{name:"عبدالباري",role:"حارس",clue:"كان قرب الباب.",answer:"لم ألاحظ شيئاً."}
+]
+},
+
+{
+title:"المفتاح الصغير",
+difficulty:"medium",
+desc:"ظهر مفتاح مجهول داخل درج يفترض أنه مقفل.",
+culprit:"مساعد",
+evidence:["🗝️ شكل المفتاح","🔧 سجل الصيانة","🔎 حالة الدرج"],
+suspects:[
+{name:"مساعد",role:"موظف",clue:"كان يعرف مكان الدرج.",answer:"لم أفتح الدرج."},
+{name:"منصور",role:"مدير",clue:"يملك صلاحية المكتب.",answer:"لم أستخدم المفتاح."},
+{name:"منير",role:"حارس",clue:"لا يملك صلاحية.",answer:"لم أدخل المكتب."},
+{name:"عبدالباري",role:"فني",clue:"قام بالصيانة.",answer:"أغلقت الدرج بعد الصيانة."}
+]
+},
+
+{
+title:"الغرفة الزرقاء",
+difficulty:"hard",
+desc:"تضاربت أوقات دخول ثلاثة أشخاص إلى الغرفة.",
+culprit:"عبدالباري",
+evidence:["🚪 سجل الباب","🕰️ ساعة الحائط","📹 كاميرا الممر"],
+suspects:[
+{name:"عبدالباري",role:"مشرف",clue:"توقيته لا يطابق السجل.",answer:"ربما الساعة كانت خاطئة."},
+{name:"منصور",role:"مدير",clue:"دخل لفترة قصيرة.",answer:"خرجت فوراً."},
+{name:"مساعد",role:"موظف",clue:"دخل بعد الحادث.",answer:"كنت في مكتبي."},
+{name:"منير",role:"حارس",clue:"راقب الممر.",answer:"لم أر شيئاً."}
+]
+},
+
+{
+title:"الملف الناقص",
+difficulty:"easy",
+desc:"اختفت صفحة واحدة فقط من ملف كامل.",
+culprit:"منصور",
+evidence:["📄 ترقيم الصفحات","🖨️ آلة النسخ","📋 سجل المكتب"],
+suspects:[
+{name:"منصور",role:"مدير",clue:"كان آخر من راجع الملف.",answer:"لم أحذف شيئاً."},
+{name:"مساعد",role:"محاسب",clue:"استخدم آلة النسخ.",answer:"كنت أنسخ مستندات أخرى."},
+{name:"منير",role:"سكرتير",clue:"رتب الملفات.",answer:"وضعت الملف في مكانه."},
+{name:"عبدالباري",role:"حارس",clue:"لم يدخل المكتب.",answer:"لم ألمس الملف."}
+]
+},
+
+{
+title:"الصوت من الطابق الثاني",
+difficulty:"medium",
+desc:"سمع شاهد صوتاً من الطابق الثاني، لكن توقيته لم يكن دقيقاً.",
+culprit:"مساعد",
+evidence:["🎧 شهادة الشاهد","🛗 سجل المصعد","💡 سجل الإضاءة"],
+suspects:[
+{name:"مساعد",role:"موظف",clue:"ظهر قرب المصعد.",answer:"كنت أبحث عن شخص."},
+{name:"منصور",role:"مدير",clue:"كان في الطابق الأول.",answer:"لم أصعد."},
+{name:"منير",role:"حارس",clue:"سمع الصوت أيضاً.",answer:"لم أعرف مصدره."},
+{name:"عبدالباري",role:"زائر",clue:"غادر المبنى.",answer:"لم أسمع شيئاً."}
+]
+},
+
+{
+title:"المذكرة الممزقة",
+difficulty:"hard",
+desc:"وصل نصف مذكرة فقط إلى المحقق.",
+culprit:"منير",
+evidence:["📝 نوع الورق","🗑️ سلة المهملات","🖊️ قلم المكتب"],
+suspects:[
+{name:"منير",role:"موظف",clue:"يستخدم نفس نوع الورق.",answer:"لا أعرف المذكرة."},
+{name:"منصور",role:"مدير",clue:"يكتب ملاحظاته رقمياً.",answer:"لم أكتبها."},
+{name:"مساعد",role:"محاسب",clue:"كان في المكتب.",answer:"لم أر المذكرة."},
+{name:"عبدالباري",role:"حارس",clue:"لم يدخل المكتب.",answer:"لا أعرف عنها."}
+]
+},
+
+{
+title:"النافذة المفتوحة",
+difficulty:"medium",
+desc:"بدت النافذة طريقاً للهروب، لكن آثار المكان لا تؤيد ذلك.",
+culprit:"عبدالباري",
+evidence:["🪟 آثار النافذة","🌫️ الغبار","📹 كاميرا الخارج"],
+suspects:[
+{name:"عبدالباري",role:"فني",clue:"يعرف طريقة فتح النافذة.",answer:"لم أفتحها."},
+{name:"منصور",role:"مدير",clue:"كان خارج المبنى.",answer:"كنت في السيارة."},
+{name:"مساعد",role:"موظف",clue:"غادر من الباب.",answer:"لم أستخدم النافذة."},
+{name:"منير",role:"حارس",clue:"راقب الخارج.",answer:"لم أر أحداً."}
+]
+},
+
+{
+title:"الطاولة السادسة",
+difficulty:"easy",
+desc:"اختفى شيء من طاولة في مطعم مزدحم.",
+culprit:"منصور",
+evidence:["🪑 رقم الطاولة","🧾 إيصال الطلب","📹 كاميرا المطعم"],
+suspects:[
+{name:"منصور",role:"زبون",clue:"جلس وحده على الطاولة.",answer:"لم آخذ شيئاً."},
+{name:"منير",role:"نادل",clue:"مر بالطاولة.",answer:"كنت أقدم الطلبات."},
+{name:"مساعد",role:"زبون",clue:"جلس قريباً.",answer:"لم ألمس الطاولة."},
+{name:"عبدالباري",role:"زائر",clue:"غادر قبل الحادث.",answer:"كنت قد خرجت."}
+]
+},
+
+{
+title:"الساعة 11:11",
+difficulty:"hard",
+desc:"كل الأدلة تشير إلى وقت واحد، لكن أحدها مزيف.",
+culprit:"مساعد",
+evidence:["⏱️ سجل الوقت","⌚ بطارية الساعة","📝 شهادة الشاهد"],
+suspects:[
+{name:"مساعد",role:"موظف",clue:"كان يعرف أن الساعة لا تعمل.",answer:"لم ألاحظ شيئاً."},
+{name:"منصور",role:"مدير",clue:"اعتمد على الساعة.",answer:"ظننت أنها دقيقة."},
+{name:"منير",role:"حارس",clue:"كتب وقت الحادث.",answer:"هذا ما رأيته."},
+{name:"عبدالباري",role:"فني",clue:"فحص الساعة.",answer:"كانت تحتاج بطارية."}
+]
+}
+
+];
+
+let current=0;
+let score=0;
+let solved=new Set();
+let seconds=0;
+
+function renderMenu(){
+    document.getElementById("caseMenu").innerHTML=
+    cases.map((c,i)=>`
+    <button class="${i===current?"active":""}" onclick="loadCase(${i})">
+    القضية ${i+1}
+    </button>`).join("");
+}
+
+function loadCase(index){
+    current=index;
+    const c=cases[index];
+
+    renderMenu();
+
+    document.getElementById("game").innerHTML=`
+
+    <div class="card">
+        <span class="badge ${c.difficulty}">
+        ${c.difficulty==="easy"?"🟢 سهل":c.difficulty==="medium"?"🟡 متوسط":"🔴 صعب"}
+        </span>
+
+        <h2>${c.title}</h2>
+        <p class="muted">${c.desc}</p>
+    </div>
+
+    <div class="tabs">
+        <button class="tab active" onclick="switchTab('suspects',this)">
+        👤 المشتبهون
+        </button>
+
+        <button class="tab" onclick="switchTab('evidence',this)">
+        🔎 الأدلة
+        </button>
+
+        <button class="tab" onclick="switchTab('interrogate',this)">
+        💬 الاستجواب
+        </button>
+    </div>
+
+    <div id="suspects" class="panel active">
+        ${c.suspects.map(s=>`
+        <div class="item">
+            <div class="name">${s.name}</div>
+            <div class="muted">${s.role}</div>
+            <p>🔍 ${s.clue}</p>
+        </div>
+        `).join("")}
+    </div>
+
+    <div id="evidence" class="panel">
+        ${c.evidence.map((e,i)=>`
+        <div class="item">
+            <b>الدليل ${i+1}</b><br>
+            ${e}
+        </div>
+        `).join("")}
+    </div>
+
+    <div id="interrogate" class="panel">
+
+        <div id="chat" class="chat">
+            <div class="msg suspect">
+                🕵️ اختر مشتبهًا وابدأ الاستجواب.
+            </div>
+        </div>
+
+        <div class="controls">
+            <select id="who">
+                ${c.suspects.map(s=>`
+                <option value="${s.name}">${s.name}</option>
+                `).join("")}
+            </select>
+        </div>
+
+        <div class="controls">
+            <input id="question"
+            placeholder="اسأل: أين كنت؟ ماذا تعرف؟ ماذا رأيت؟">
+
+            <button class="action" onclick="ask()">
+            استجواب
+            </button>
+        </div>
+
+    </div>
+
+    <div class="accuse">
+
+        <b>⚖️ إصدار الاتهام النهائي</b>
+
+        <select id="accuseSelect">
+            ${c.suspects.map(s=>`
+            <option>${s.name}</option>
+            `).join("")}
+        </select>
+
+        <button class="action"
+        style="width:100%"
+        onclick="submitAccusation()">
+        إغلاق القضية
+        </button>
+
+        <div id="result" class="result"></div>
+
+    </div>
+    `;
+}
+
+function switchTab(id,button){
+
+    document.querySelectorAll(".panel")
+    .forEach(p=>p.classList.remove("active"));
+
+    document.getElementById(id).classList.add("active");
+
+    document.querySelectorAll(".tab")
+    .forEach(t=>t.classList.remove("active"));
+
+    button.classList.add("active");
+}
+
+function ask(){
+
+    const q=document.getElementById("question").value.trim();
+
+    if(!q)return;
+
+    const who=document.getElementById("who").value;
+    const c=cases[current];
+
+    const suspect=c.suspects.find(s=>s.name===who);
+
+    let answer=suspect.answer;
+
+    if(q.includes("أين")||q.includes("وين")){
+        answer=suspect.name===c.culprit
+        ?"كنت قريباً من المكان، لكن لا أريد الدخول في التفاصيل."
+        :"كنت في مكان آخر وقت الحادث.";
+    }
+
+    if(q.includes("دليل")||q.includes("البصم")||q.includes("الكاميرا")){
+        answer=suspect.clue;
+    }
+
+    const chat=document.getElementById("chat");
+
+    chat.innerHTML+=`
+    <div class="msg user">
+        أنت: ${q}
+    </div>
+
+    <div class="msg suspect">
+        ${who}: ${answer}
+    </div>
+    `;
+
+    chat.scrollTop=chat.scrollHeight;
+
+    document.getElementById("question").value="";
+}
+
+function submitAccusation(){
+
+    const selected=document.getElementById("accuseSelect").value;
+    const c=cases[current];
+    const result=document.getElementById("result");
+
+    result.className="result";
+
+    if(selected===c.culprit){
+
+        if(!solved.has(current)){
+            solved.add(current);
+            score+=100;
+        }
+
+        result.classList.add("correct");
+
+        result.innerHTML=`
+        <b>✅ تم حل القضية!</b><br>
+        الجاني هو <b>${c.culprit}</b>.<br><br>
+        🔎 الدليل الحاسم: ${c.evidence[0]}<br>
+        🎯 حصلت على 100 نقطة.
+        `;
+
+    }else{
+
+        score=Math.max(0,score-25);
+
+        result.classList.add("wrong");
+
+        result.innerHTML=`
+        <b>❌ الاتهام خاطئ.</b><br>
+        تم خصم 25 نقطة.<br>
+        راجع الأدلة والاستجوابات وحاول مرة أخرى.
+        `;
+    }
+
+    updateStats();
+}
+
+function updateStats(){
+
+    document.getElementById("score").textContent=score;
+
+    document.getElementById("solved").textContent=
+    `${solved.size}/20`;
+}
+
+setInterval(()=>{
+
+    seconds++;
+
+    const minutes=String(Math.floor(seconds/60)).padStart(2,"0");
+    const secs=String(seconds%60).padStart(2,"0");
+
+    document.getElementById("timer").textContent=
+    `${minutes}:${secs}`;
+
+},1000);
+
+renderMenu();
+loadCase(0);
+
+</script>
+
+</body>
+</html>
